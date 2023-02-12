@@ -164,6 +164,20 @@ class _TelaListaSonhosState extends State<TelaListaSonhos> {
         backgroundColor: AppTema.corSecundaria,
         child: const Icon(Icons.add),
       ),
+      bottomNavigationBar: Container(
+        height: 40,
+        color: AppTema.corPrimaria.withOpacity(0.1),
+        child: const Center(
+          child: Text(
+            '\u00A9 2025 Augusto César Perin',
+            style: TextStyle(
+              color: AppTema.corTextoDimmed,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      ),
     );
   }
-} 
+}
