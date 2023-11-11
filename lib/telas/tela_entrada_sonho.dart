@@ -201,8 +201,8 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CampoTextoLynchiano(
-                  rotulo: 'Data',
-                  dica: 'Digite a data do sonho (opcional)',
+                  rotulo: 'Título',
+                  dica: 'Digite um título para o sonho (opcional)',
                   controlador: _tituloController,
                   validador: (value) {
                     // Campo não obrigatório
@@ -337,52 +337,10 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: BotaoLynchiano(
-                          texto: 'Salvar Sonho',
-                          aoClicar: _salvarSonho,
-                          isLoading: _isLoading && _interpretacaoGerada,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: BotaoLynchiano(
-                          texto: 'Deletar Sonho',
-                          aoClicar: () {
-                            // Mostra um diálogo de confirmação
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: const Text('Confirmar exclusão'),
-                                  content: const Text('Tem certeza que deseja deletar este sonho?'),
-                                  backgroundColor: AppTema.corFundo,
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop(),
-                                      child: const Text('Cancelar'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                        Navigator.pop(context, false);
-                                      },
-                                      child: const Text(
-                                        'Deletar',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                          isOutlined: true,
-                        ),
-                      ),
-                    ],
+                  BotaoLynchiano(
+                    texto: 'Salvar Sonho',
+                    aoClicar: _salvarSonho,
+                    isLoading: _isLoading && _interpretacaoGerada,
                   ),
                 ],
               ],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../modelos/sonho.dart';
 import '../app_tema.dart';
+import '../servicos/servico_api_cloudflare.dart';
 
 class TelaDetalhesSonho extends StatelessWidget {
   final Sonho sonho;
@@ -10,12 +12,73 @@ class TelaDetalhesSonho extends StatelessWidget {
     required this.sonho,
   }) : super(key: key);
 
+  Future<void> _deletarSonho(BuildContext context) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final apiService = Provider.of<ServicoApiCloudflare>(context, listen: false);
+
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar exclusão'),
+          content: const Text('Tem certeza que deseja deletar este sonho permanentemente?'),
+          backgroundColor: AppTema.corFundo,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                'Deletar',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmado == true) {
+      try {
+        final sucesso = await apiService.excluirSonho(sonho.id);
+        if (sucesso) {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('Sonho deletado com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          navigator.pop(true);
+        } else {
+          throw Exception('Falha ao deletar o sonho do armazenamento.');
+        }
+      } catch (e) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Erro ao deletar sonho: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalhes do Sonho'),
         backgroundColor: AppTema.corPrimaria,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Deletar Sonho',
+            onPressed: () => _deletarSonho(context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
