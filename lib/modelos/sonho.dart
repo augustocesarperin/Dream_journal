@@ -13,7 +13,6 @@ class Sonho {
     required this.dataCriacao,
   });
 
-  // Adiciona o método copyWith para criar uma cópia modificada
   Sonho copyWith({
     String? id,
     String? titulo,

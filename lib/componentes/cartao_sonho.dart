@@ -36,9 +36,7 @@ class CartaoSonho extends StatelessWidget {
                   Expanded(
                     child: Text(
                       sonho.titulo,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         color: AppTema.corTexto,
                       ),
                       maxLines: 1,
@@ -53,8 +51,7 @@ class CartaoSonho extends StatelessWidget {
                     ),
                     child: Text(
                       _formatarData(sonho.dataCriacao),
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppTema.corTextoDimmed,
                       ),
                     ),
@@ -66,11 +63,10 @@ class CartaoSonho extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 sonho.descricao,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppTema.corTextoDimmed,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                   color: AppTema.corTextoDimmed,
                 ),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
@@ -83,8 +79,7 @@ class CartaoSonho extends StatelessWidget {
                 ),
                 child: Text(
                   sonho.interpretacao,
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppTema.corTexto,
                     fontStyle: FontStyle.italic,
                   ),
@@ -98,8 +93,7 @@ class CartaoSonho extends StatelessWidget {
                 children: [
                   Text(
                     'Toque para ver mais',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w500,
                     ),

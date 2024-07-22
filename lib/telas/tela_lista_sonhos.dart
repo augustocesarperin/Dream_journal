@@ -165,16 +165,29 @@ class _TelaListaSonhosState extends State<TelaListaSonhos> {
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: Container(
-        height: 40,
+        height: 55,
         color: AppTema.corPrimaria.withOpacity(0.1),
         child: const Center(
-          child: Text(
-            '\u00A9 2025 Augusto César Perin',
-            style: TextStyle(
-              color: AppTema.corTextoDimmed,
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '\u00A9 Abstratus Labs',
+                style: TextStyle(
+                  color: AppTema.corTextoDimmed,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'augustocesarperin@abstratuslabs.com',
+                style: TextStyle(
+                  color: AppTema.corTextoDimmed,
+                  fontSize: 10,
+                ),
+              ),
+            ],
           ),
         ),
       ),

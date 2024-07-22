@@ -18,6 +18,7 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
   final _formKey = GlobalKey<FormState>();
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
+  final _scrollController = ScrollController();
   
   bool _isLoading = false;
   String? _interpretacao;
@@ -28,13 +29,28 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
   void dispose() {
     _tituloController.dispose();
     _descricaoController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _gerarInterpretacao() async {
     if (_formKey.currentState?.validate() != true) {
       return;
     }
+
+    FocusScope.of(context).unfocus();
 
     setState(() {
       _isLoading = true;
@@ -46,21 +62,11 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
     try {
       debugPrint('Iniciando interpretação do sonho...');
       
-      // Mostrar feedback visual para o usuário
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Interpretando seu sonho... Isso pode levar alguns segundos.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-      
       final apiService = Provider.of<ServicoApiCloudflare>(context, listen: false);
       final interpretacao = await apiService.obterInterpretacao(_descricaoController.text);
       debugPrint('Interpretação recebida: $interpretacao');
 
-      // Verificar se a interpretação contém uma mensagem de erro ou indisponibilidade
+      
       if (interpretacao.contains('temporariamente indisponível') || 
           interpretacao.contains('enfrentando dificuldades') ||
           interpretacao.contains('As cortinas vermelhas se fecharam temporariamente') ||
@@ -90,17 +96,24 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
         return;
       }
 
+      FocusScope.of(context).unfocus();
+
       setState(() {
         _interpretacao = interpretacao;
         _interpretacaoGerada = true;
         _isLoading = false;
       });
+
+      _scrollToBottom();
+
     } catch (e) {
       debugPrint('Erro ao gerar interpretação: $e');
       
       final mensagemErro = e.toString().contains('Exception:') 
           ? e.toString().split('Exception: ').last 
           : e.toString();
+      
+      FocusScope.of(context).unfocus();
       
       setState(() {
         _erro = mensagemErro;
@@ -138,16 +151,14 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
       debugPrint('Salvando sonho...');
       final apiService = Provider.of<ServicoApiCloudflare>(context, listen: false);
       
-      // Cria um objeto Sonho com os dados do formulário
       final novoSonho = Sonho(
-        id: Uuid().v4(),  // ID vazio para novo sonho
-        titulo: _tituloController.text,
+        id: Uuid().v4(),  
+        titulo: _tituloController.text.isEmpty ? "Sonho sem título" : _tituloController.text,
         descricao: _descricaoController.text,
         interpretacao: _interpretacao ?? '',
         dataCriacao: DateTime.now(),
       );
       
-      // Chama o método atualizado
       final resultado = await apiService.salvarSonho(novoSonho);
 
       setState(() {
@@ -193,6 +204,7 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
         backgroundColor: AppTema.corPrimaria,
       ),
       body: SingleChildScrollView(
+        controller: _scrollController,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Form(
@@ -205,7 +217,6 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                   dica: 'Digite um título para o sonho (opcional)',
                   controlador: _tituloController,
                   validador: (value) {
-                    // Campo não obrigatório
                     return null;
                   },
                 ),
@@ -238,6 +249,7 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                 BotaoLynchiano(
                   texto: 'Interpretar Sonho',
                   aoClicar: _gerarInterpretacao,
+                  isEnabled: !(_isLoading && _interpretacaoGerada),
                   isLoading: _isLoading && !_interpretacaoGerada,
                 ),
                 if (_isLoading && !_interpretacaoGerada) ...[
@@ -245,9 +257,6 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                   const Center(
                     child: Column(
                       children: [
-                        CircularProgressIndicator(
-                          color: AppTema.corSecundaria,
-                        ),
                         SizedBox(height: 12),
                         Text(
                           'Aguarde enquanto a cortina vermelha se abre',
@@ -265,7 +274,7 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                           ),
                         ),
                       ],
-                    ),
+                    ), 
                   ),
                 ],
                 if (_erro != null && _interpretacao == null) ...[
@@ -319,11 +328,11 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTema.corPrimaria,
+                      color: AppTema.corAcento.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTema.corAcento),
                     ),
-                    constraints: const BoxConstraints(maxHeight: 200),
+                    constraints: const BoxConstraints(maxHeight: 300),
                     child: SingleChildScrollView(
                       child: Text(
                         _interpretacao!,
@@ -340,6 +349,7 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                   BotaoLynchiano(
                     texto: 'Salvar Sonho',
                     aoClicar: _salvarSonho,
+                    isEnabled: _interpretacao != null,
                     isLoading: _isLoading && _interpretacaoGerada,
                   ),
                 ],

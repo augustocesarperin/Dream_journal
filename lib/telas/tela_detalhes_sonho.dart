@@ -157,18 +157,6 @@ class TelaDetalhesSonho extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
-              const Center(
-                child: Text(
-                  '"Em sonhos, você vê o que seu coração esconde."',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontStyle: FontStyle.italic,
-                    color: AppTema.corTextoDimmed,
-                  ),
-                ),
-              ),
             ],
           ),
         ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 // Tema visual do aplicativo, inspirado em estética noir e tons escuros
 // Centraliza as cores e estilos usados em todo o app
 class AppTema {
-  // Paleta de cores principal
+
   static const Color corPrimaria = Color(0xFF1A1A1A);
   static const Color corSecundaria = Color(0xFFB20000); // vermelho escuro
   static const Color corFundo = Color(0xFF000000);
@@ -14,7 +14,7 @@ class AppTema {
 
   // TODO: adicionar variações da paleta para diferentes níveis de contraste
 
-  // Retorna o tema configurado para o app
+  
   static ThemeData obterTema() {
     // Usa o esquema escuro como base
     return ThemeData(
@@ -39,34 +39,34 @@ class AppTema {
         displayLarge: TextStyle(
           color: corTexto,
           fontWeight: FontWeight.bold,
-          fontSize: 28,
+          fontSize: 26,
           letterSpacing: 1.2,
         ),
         displayMedium: TextStyle(
           color: corTexto,
           fontWeight: FontWeight.bold,
-          fontSize: 24,
+          fontSize: 22,
           letterSpacing: 1.1,
         ),
         displaySmall: TextStyle(
           color: corTexto,
           fontWeight: FontWeight.bold,
-          fontSize: 20,
+          fontSize: 18,
           letterSpacing: 1.0,
         ),
         bodyLarge: TextStyle(
           color: corTexto,
-          fontSize: 16,
+          fontSize: 15,
           letterSpacing: 0.5,
         ),
         bodyMedium: TextStyle(
           color: corTexto,
-          fontSize: 14,
+          fontSize: 13,
           letterSpacing: 0.25,
         ),
         bodySmall: TextStyle(
           color: corTextoDimmed,
-          fontSize: 12,
+          fontSize: 11,
           letterSpacing: 0.4,
         ),
       ),
@@ -84,7 +84,7 @@ class AppTema {
         ),
         hintStyle: const TextStyle(color: corTextoDimmed),
       ),
-      // Botões elevados
+      
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: corSecundaria,
@@ -95,7 +95,7 @@ class AppTema {
           ),
         ),
       ),
-      // Estilo dos cards
+      
       cardTheme: CardTheme(
         color: corPrimaria,
         elevation: 4,
@@ -103,11 +103,15 @@ class AppTema {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-      // Divisores
+      
       dividerTheme: const DividerThemeData(
         color: corAcento,
         thickness: 1,
       ),
+
+      // Cores para feedback de toque (InkWell)
+      splashColor: AppTema.corSecundaria.withOpacity(0.1),
+      highlightColor: AppTema.corSecundaria.withOpacity(0.05),
     );
   }
 } 
