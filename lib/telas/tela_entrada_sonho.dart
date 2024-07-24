@@ -168,9 +168,12 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
       if (resultado && mounted) {
         debugPrint('Sonho salvo com sucesso!');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sonho salvo com sucesso!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text(
+              "Seu sonho foi salvo",
+              style: TextStyle(color: AppTema.corTexto),
+            ),
+            backgroundColor: AppTema.corAcento,
           ),
         );
         
@@ -316,15 +319,14 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                 ],
                 if (_interpretacao != null) ...[
                   const SizedBox(height: 32),
-                  const Text(
-                    'Interpretação',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  const Center(
+                    child: Icon(
+                      Icons.nightlight_outlined,
                       color: AppTema.corSecundaria,
+                      size: 28.0,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(

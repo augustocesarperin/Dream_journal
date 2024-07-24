@@ -44,15 +44,18 @@ class TelaDetalhesSonho extends StatelessWidget {
     if (confirmado == true) {
       try {
         final sucesso = await apiService.excluirSonho(sonho.id);
-        if (sucesso) {
+        if (sucesso && context.mounted) {
           scaffoldMessenger.showSnackBar(
-            const SnackBar(
-              content: Text('Sonho deletado com sucesso!'),
-              backgroundColor: Colors.green,
+            SnackBar(
+              content: const Text(
+                "O sonho foi apagado do aplicativo, mas permanece em seu inconsciente.",
+                style: TextStyle(color: AppTema.corTexto),
+              ),
+              backgroundColor: AppTema.corAcento,
             ),
           );
           navigator.pop(true);
-        } else {
+        } else if (!sucesso) {
           throw Exception('Falha ao deletar o sonho do armazenamento.');
         }
       } catch (e) {

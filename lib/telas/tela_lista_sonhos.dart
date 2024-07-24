@@ -48,11 +48,15 @@ class _TelaListaSonhosState extends State<TelaListaSonhos> {
     }
   }
 
-  void _navegarParaDetalhesSonho(Sonho sonho) {
-    Navigator.push(
+  Future<void> _navegarParaDetalhesSonho(Sonho sonho) async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => TelaDetalhesSonho(sonho: sonho)),
     );
+
+    if (result == true && mounted) {
+      _carregarSonhos();
+    }
   }
 
   @override
