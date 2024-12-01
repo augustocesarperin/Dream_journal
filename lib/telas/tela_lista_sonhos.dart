@@ -17,6 +17,7 @@ class TelaListaSonhos extends StatefulWidget {
 class _TelaListaSonhosState extends State<TelaListaSonhos> {
   late Future<List<Sonho>> _sonhosFuture;
   bool _isLoading = false;
+  bool _isListEmpty = true;
 
   @override
   void initState() {
@@ -25,16 +26,26 @@ class _TelaListaSonhosState extends State<TelaListaSonhos> {
   }
 
   Future<void> _carregarSonhos() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (!_isLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     final apiService = Provider.of<ServicoApiCloudflare>(context, listen: false);
     _sonhosFuture = apiService.obterSonhos();
 
-    setState(() {
-      _isLoading = false;
-    });
+    try {
+      await _sonhosFuture;
+    } catch (_) {
+      // Error is handled by FutureBuilder, just catch to proceed
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _navegarParaEntradaSonho() async {
@@ -66,108 +77,136 @@ class _TelaListaSonhosState extends State<TelaListaSonhos> {
         title: const Text('Diário de Sonhos'),
         backgroundColor: AppTema.corPrimaria,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : FutureBuilder<List<Sonho>>(
-              future: _sonhosFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+      body: RefreshIndicator(
+        onRefresh: _carregarSonhos,
+        color: AppTema.corSecundaria,
+        child: FutureBuilder<List<Sonho>>(
+          future: _sonhosFuture,
+          builder: (context, snapshot) {
+            if (_isLoading || snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: AppTema.corSecundaria));
+            }
+
+            if (snapshot.hasError) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && !_isListEmpty) {
+                  setState(() { _isListEmpty = true; });
                 }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: AppTema.corSecundaria,
-                          size: 60,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Algo deu errado',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          snapshot.error.toString(),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppTema.corTextoDimmed),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _carregarSonhos,
-                          child: const Text('Tentar novamente'),
-                        ),
-                      ],
+              });
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppTema.corSecundaria,
+                      size: 60,
                     ),
-                  );
-                }
-
-                final sonhos = snapshot.data ?? [];
-
-                if (sonhos.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.nightlight_outlined,
-                          color: AppTema.corSecundaria,
-                          size: 60,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Nenhum sonho por trás das cortinas',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Toque no botão abaixo para registrar seu primeiro sonho',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: AppTema.corTextoDimmed),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _navegarParaEntradaSonho,
-                          child: const Text('Adicionar Sonho'),
-                        ),
-                      ],
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Algo deu errado ao carregar os sonhos',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  );
-                }
-
-                return RefreshIndicator(
-                  onRefresh: _carregarSonhos,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: ListView.builder(
-                      itemCount: sonhos.length,
-                      itemBuilder: (context, index) {
-                        final sonho = sonhos[index];
-                        return CartaoSonho(
-                          sonho: sonho,
-                          aoClicar: () => _navegarParaDetalhesSonho(sonho),
-                        );
-                      },
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text(
+                        snapshot.error.toString().split('Exception: ').last,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppTema.corTextoDimmed),
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navegarParaEntradaSonho,
-        backgroundColor: AppTema.corSecundaria,
-        child: const Icon(Icons.add),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _carregarSonhos,
+                      child: const Text('Tentar novamente'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final sonhos = snapshot.data ?? [];
+            final currentlyEmpty = sonhos.isEmpty;
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _isListEmpty != currentlyEmpty) {
+                setState(() { _isListEmpty = currentlyEmpty; });
+              }
+            });
+
+            if (currentlyEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.nightlight_outlined,
+                      color: AppTema.corSecundaria,
+                      size: 60,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Nenhum sonho por trás das cortinas',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 32.0),
+                      child: Text(
+                        'Toque no botão abaixo para registrar seu primeiro sonho',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppTema.corTextoDimmed),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTema.corSecundaria,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                      ),
+                      onPressed: _navegarParaEntradaSonho,
+                      child: const Text('Adicionar Sonho'),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return Padding(
+                padding: const EdgeInsets.only(top: 8.0, left: 8.0, right: 8.0, bottom: 8.0),
+                child: ListView.builder(
+                  itemCount: sonhos.length,
+                  itemBuilder: (context, index) {
+                    final sonho = sonhos[index];
+                    return CartaoSonho(
+                      sonho: sonho,
+                      aoClicar: () => _navegarParaDetalhesSonho(sonho),
+                    );
+                  },
+                ),
+              );
+            }
+          },
+        ),
       ),
+      floatingActionButton: _isListEmpty
+          ? null
+          : FloatingActionButton(
+              onPressed: _navegarParaEntradaSonho,
+              backgroundColor: AppTema.corSecundaria,
+              foregroundColor: Colors.white,
+              tooltip: 'Adicionar Sonho',
+              child: const Icon(Icons.add),
+            ),
       bottomNavigationBar: Container(
         height: 55,
         color: AppTema.corPrimaria.withOpacity(0.1),

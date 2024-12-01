@@ -19,18 +19,37 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _scrollController = ScrollController();
-  
-  bool _isLoading = false;
+
+  bool _isLoadingInterpretacao = false;
+  bool _isLoadingSalvamento = false;
   String? _interpretacao;
-  bool _interpretacaoGerada = false;
   String? _erro;
+  bool _isFormValid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _descricaoController.addListener(_checkFormValidity);
+  }
 
   @override
   void dispose() {
     _tituloController.dispose();
+    _descricaoController.removeListener(_checkFormValidity);
     _descricaoController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _checkFormValidity() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final isValid = _formKey.currentState?.validate() ?? false;
+      if (mounted && _isFormValid != isValid) {
+        setState(() {
+          _isFormValid = isValid;
+        });
+      }
+    });
   }
 
   void _scrollToBottom() {
@@ -46,124 +65,85 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
   }
 
   Future<void> _gerarInterpretacao() async {
-    if (_formKey.currentState?.validate() != true) {
-      return;
-    }
+    if (!_isFormValid || _isLoadingInterpretacao || _isLoadingSalvamento) return;
 
     FocusScope.of(context).unfocus();
 
     setState(() {
-      _isLoading = true;
+      _isLoadingInterpretacao = true;
       _interpretacao = null;
-      _interpretacaoGerada = false;
       _erro = null;
     });
 
     try {
       debugPrint('Iniciando interpretação do sonho...');
-      
       final apiService = Provider.of<ServicoApiCloudflare>(context, listen: false);
-      final interpretacao = await apiService.obterInterpretacao(_descricaoController.text);
-      debugPrint('Interpretação recebida: $interpretacao');
+      final resultInterpretation = await apiService.obterInterpretacao(_descricaoController.text);
+      debugPrint('Interpretação recebida: $resultInterpretation');
 
-      
-      if (interpretacao.contains('temporariamente indisponível') || 
-          interpretacao.contains('enfrentando dificuldades') ||
-          interpretacao.contains('As cortinas vermelhas se fecharam temporariamente') ||
-          interpretacao.contains('Não foi possível')) {
-        
-        setState(() {
-          _erro = interpretacao;
-          _interpretacao = null;
-          _isLoading = false;
-        });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(interpretacao),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 5),
-              action: SnackBarAction(
-                label: 'Tentar Novamente',
-                textColor: Colors.white,
-                onPressed: _gerarInterpretacao,
-              ),
-            ),
-          );
-        }
-        
+      if (resultInterpretation.contains('temporariamente indisponível') ||
+          resultInterpretation.contains('enfrentando dificuldades') ||
+          resultInterpretation.contains('As cortinas vermelhas se fecharam temporariamente') ||
+          resultInterpretation.contains('Não foi possível')) {
+         if (mounted) {
+             setState(() {
+               _erro = resultInterpretation;
+               _interpretacao = null;
+             });
+         }
+
         return;
       }
 
-      FocusScope.of(context).unfocus();
-
-      setState(() {
-        _interpretacao = interpretacao;
-        _interpretacaoGerada = true;
-        _isLoading = false;
-      });
-
-      _scrollToBottom();
+      if (mounted) {
+        setState(() {
+          _interpretacao = resultInterpretation;
+          _erro = null;
+        });
+        _scrollToBottom();
+      }
 
     } catch (e) {
       debugPrint('Erro ao gerar interpretação: $e');
-      
-      final mensagemErro = e.toString().contains('Exception:') 
-          ? e.toString().split('Exception: ').last 
+      final mensagemErro = e.toString().contains('Exception:')
+          ? e.toString().split('Exception: ').last
           : e.toString();
-      
-      FocusScope.of(context).unfocus();
-      
-      setState(() {
-        _erro = mensagemErro;
-        _interpretacao = null;
-        _isLoading = false;
-      });
-      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Não foi possível interpretar seu sonho: ${mensagemErro.split(': ').last}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Tentar Novamente',
-              textColor: Colors.white,
-              onPressed: _gerarInterpretacao,
-            ),
-          ),
-        );
+        setState(() {
+          _erro = mensagemErro;
+          _interpretacao = null;
+        });
       }
+    } finally {
+       if (mounted) {
+          setState(() { _isLoadingInterpretacao = false; });
+       }
     }
   }
 
   Future<void> _salvarSonho() async {
-    if (_formKey.currentState?.validate() != true || _interpretacao == null) {
-      return;
-    }
+    if (!_isFormValid || _isLoadingInterpretacao || _isLoadingSalvamento) return;
+
+    FocusScope.of(context).unfocus();
 
     setState(() {
-      _isLoading = true;
+      _isLoadingSalvamento = true;
+      _erro = null;
     });
 
     try {
       debugPrint('Salvando sonho...');
       final apiService = Provider.of<ServicoApiCloudflare>(context, listen: false);
-      
+
       final novoSonho = Sonho(
-        id: Uuid().v4(),  
+        id: const Uuid().v4(),
         titulo: _tituloController.text.isEmpty ? "Sonho sem título" : _tituloController.text,
         descricao: _descricaoController.text,
         interpretacao: _interpretacao ?? '',
         dataCriacao: DateTime.now(),
       );
-      
-      final resultado = await apiService.salvarSonho(novoSonho);
 
-      setState(() {
-        _isLoading = false;
-      });
+      final resultado = await apiService.salvarSonho(novoSonho);
 
       if (resultado && mounted) {
         debugPrint('Sonho salvo com sucesso!');
@@ -176,26 +156,27 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
             backgroundColor: AppTema.corAcento,
           ),
         );
-        
         Navigator.pop(context, true);
-      } else {
-        throw Exception('Falha ao salvar o sonho');
+      } else if (!resultado) {
+        throw Exception('Falha ao salvar o sonho no armazenamento local.');
       }
     } catch (e) {
       debugPrint('Erro ao salvar sonho: $e');
-      setState(() {
-        _isLoading = false;
-        _erro = e.toString();
-      });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Não foi possível salvar seu sonho: $_erro'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      final mensagemErro = e.toString().contains('Exception:')
+          ? e.toString().split('Exception: ').last
+          : e.toString();
+      if (mounted){
+          setState(() {
+              _erro = mensagemErro;
+          });
       }
+
+    } finally {
+       if (mounted) {
+         setState(() {
+            _isLoadingSalvamento = false;
+         });
+       }
     }
   }
 
@@ -208,40 +189,39 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
+        physics: const BouncingScrollPhysics(),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Form(
             key: _formKey,
+            onChanged: _checkFormValidity,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 CampoTextoLynchiano(
                   rotulo: 'Título',
-                  dica: 'Digite um título para o sonho (opcional)',
+                  dica: 'Um título para seu sonho (opcional)',
                   controlador: _tituloController,
-                  validador: (value) {
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 20),
                 CampoTextoLynchiano(
-                  rotulo: 'Descreva o seu sonho',
+                  rotulo: 'Descreva o seu sonho *',
                   dica: 'Descreva seu sonho em detalhes...',
                   controlador: _descricaoController,
                   isMultiline: true,
                   validador: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Por favor, descreva seu sonho';
+                      return 'A descrição é obrigatória';
                     }
                     if (value.length < 10) {
-                      return 'A descrição deve ter pelo menos 10 caracteres';
+                      return 'Descreva com pelo menos 10 caracteres';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Quanto mais detalhes você fornecer, melhor será a interpretação.',
+                  'Quanto mais detalhes, melhor a interpretação.',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppTema.corTextoDimmed,
@@ -249,58 +229,53 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                BotaoLynchiano(
-                  texto: 'Interpretar Sonho',
-                  aoClicar: _gerarInterpretacao,
-                  isEnabled: !(_isLoading && _interpretacaoGerada),
-                  isLoading: _isLoading && !_interpretacaoGerada,
-                ),
-                if (_isLoading && !_interpretacaoGerada) ...[
-                  const SizedBox(height: 20),
-                  const Center(
-                    child: Column(
-                      children: [
-                        SizedBox(height: 12),
-                        Text(
-                          'Aguarde enquanto a cortina vermelha se abre',
-                          style: TextStyle(
-                            fontStyle: FontStyle.italic,
-                            color: AppTema.corTextoDimmed,
-                          ),
+
+                if (_interpretacao == null)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: BotaoLynchiano(
+                          texto: 'Interpretar',
+                          aoClicar: _gerarInterpretacao,
+                          isEnabled: _isFormValid && !_isLoadingInterpretacao && !_isLoadingSalvamento,
+                          isLoading: _isLoadingInterpretacao,
+                          isOutlined: true,
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Isso pode levar alguns segundos',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTema.corTextoDimmed,
-                          ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: BotaoLynchiano(
+                          texto: 'Salvar Sonho',
+                          aoClicar: _salvarSonho,
+                          isEnabled: _isFormValid && !_isLoadingInterpretacao && !_isLoadingSalvamento,
+                          isLoading: _isLoadingSalvamento,
                         ),
-                      ],
-                    ), 
+                      ),
+                    ],
                   ),
-                ],
-                if (_erro != null && _interpretacao == null) ...[
-                  const SizedBox(height: 20),
+
+                if (_erro != null && !_isLoadingInterpretacao && !_isLoadingSalvamento) ...[
+                  const SizedBox(height: 24),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: AppTema.corAcento.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade300),
+                      border: Border.all(color: AppTema.corSecundaria.withOpacity(0.5)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.error_outline, color: Colors.red),
-                            SizedBox(width: 8),
+                            Icon(Icons.warning_amber_rounded, color: AppTema.corSecundaria, size: 20),
+                            const SizedBox(width: 8),
                             Text(
-                              'Erro na interpretação',
+                              'Ocorreu um Erro',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.red,
+                                color: AppTema.corSecundaria,
                               ),
                             ),
                           ],
@@ -308,16 +283,17 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                         const SizedBox(height: 8),
                         Text(
                           _erro!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
+                          style: TextStyle(
+                            color: AppTema.corTexto.withOpacity(0.9),
+                            fontSize: 13,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ],
-                if (_interpretacao != null) ...[
+
+                if (_interpretacao != null && _erro == null) ...[
                   const SizedBox(height: 32),
                   const Center(
                     child: Icon(
@@ -328,6 +304,7 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                   ),
                   const SizedBox(height: 12),
                   Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppTema.corAcento.withOpacity(0.1),
@@ -348,13 +325,31 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  BotaoLynchiano(
-                    texto: 'Salvar Sonho',
-                    aoClicar: _salvarSonho,
-                    isEnabled: _interpretacao != null,
-                    isLoading: _isLoading && _interpretacaoGerada,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: BotaoLynchiano(
+                          texto: 'Reinterpretar',
+                          aoClicar: _gerarInterpretacao,
+                          isEnabled: _isFormValid && !_isLoadingInterpretacao && !_isLoadingSalvamento,
+                          isLoading: _isLoadingInterpretacao,
+                          isOutlined: true,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: BotaoLynchiano(
+                          texto: 'Salvar Sonho',
+                          aoClicar: _salvarSonho,
+                          isEnabled: _isFormValid && !_isLoadingInterpretacao && !_isLoadingSalvamento,
+                          isLoading: _isLoadingSalvamento,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
+
+                const SizedBox(height: 40),
               ],
             ),
           ),
