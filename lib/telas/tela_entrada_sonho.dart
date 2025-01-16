@@ -8,7 +8,9 @@ import '../app_tema.dart';
 import '../modelos/sonho.dart';
 
 class TelaEntradaSonho extends StatefulWidget {
-  const TelaEntradaSonho({Key? key}) : super(key: key);
+  final Sonho? sonhoParaEditar;
+
+  const TelaEntradaSonho({Key? key, this.sonhoParaEditar}) : super(key: key);
 
   @override
   State<TelaEntradaSonho> createState() => _TelaEntradaSonhoState();
@@ -29,7 +31,20 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
   @override
   void initState() {
     super.initState();
+
+    if (widget.sonhoParaEditar != null) {
+      _tituloController.text = widget.sonhoParaEditar!.titulo == "Sonho sem título" 
+          ? '' 
+          : widget.sonhoParaEditar!.titulo;
+      _descricaoController.text = widget.sonhoParaEditar!.descricao;
+      if (widget.sonhoParaEditar!.interpretacao != null && widget.sonhoParaEditar!.interpretacao!.isNotEmpty) {
+        _interpretacao = widget.sonhoParaEditar!.interpretacao;
+      }
+    }
+
     _descricaoController.addListener(_checkFormValidity);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkFormValidity());
   }
 
   @override
@@ -132,31 +147,31 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
     });
 
     try {
-      debugPrint('Salvando sonho...');
+      debugPrint('Salvando sonho (Editando: ${widget.sonhoParaEditar != null})...');
       final apiService = Provider.of<ServicoApiCloudflare>(context, listen: false);
 
-      final novoSonho = Sonho(
-        id: const Uuid().v4(),
-        titulo: _tituloController.text.isEmpty ? "Sonho sem título" : _tituloController.text,
-        descricao: _descricaoController.text,
+      final sonhoParaSalvar = Sonho(
+        id: widget.sonhoParaEditar?.id ?? const Uuid().v4(),
+        titulo: _tituloController.text.trim().isEmpty ? "Sonho sem título" : _tituloController.text.trim(),
+        descricao: _descricaoController.text.trim(),
         interpretacao: _interpretacao ?? '',
-        dataCriacao: DateTime.now(),
+        dataCriacao: widget.sonhoParaEditar?.dataCriacao ?? DateTime.now(),
       );
 
-      final resultado = await apiService.salvarSonho(novoSonho);
+      final resultado = await apiService.salvarSonho(sonhoParaSalvar);
 
       if (resultado && mounted) {
         debugPrint('Sonho salvo com sucesso!');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              "Seu sonho foi salvo",
-              style: TextStyle(color: AppTema.corTexto),
+            content: Text(
+              widget.sonhoParaEditar == null ? "Seu sonho foi salvo" : "Sonho atualizado",
+              style: const TextStyle(color: AppTema.corTexto),
             ),
             backgroundColor: AppTema.corAcento,
           ),
         );
-        Navigator.pop(context, true);
+        Navigator.pop(context, widget.sonhoParaEditar == null ? true : sonhoParaSalvar);
       } else if (!resultado) {
         throw Exception('Falha ao salvar o sonho no armazenamento local.');
       }
@@ -182,9 +197,11 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
 
   @override
   Widget build(BuildContext context) {
+    final String appBarTitle = widget.sonhoParaEditar == null ? 'Novo Sonho' : 'Editar Sonho';
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Novo Sonho'),
+        title: Text(appBarTitle),
         backgroundColor: AppTema.corPrimaria,
       ),
       body: SingleChildScrollView(
