@@ -22,11 +22,11 @@ android {
     // Define signing configuration for release
     signingConfigs {
         create("release") {
-            // Read signing info from environment variables
-            keyAlias = System.getenv("SIGNING_KEY_ALIAS")
-            keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
-            storeFile = System.getenv("SIGNING_STORE_FILE")?.let { file(it) }
-            storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+            // Read signing info from the correct environment variables
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
+            storeFile = System.getenv("KEYSTORE_PATH")?.let { file(it) }
+            storePassword = System.getenv("STORE_PASSWORD")
         }
     }
 
