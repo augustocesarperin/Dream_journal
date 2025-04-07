@@ -4,7 +4,6 @@ import '../modelos/sonho.dart';
 import '../app_tema.dart';
 import '../servicos/servico_api_cloudflare.dart';
 import './tela_entrada_sonho.dart'; // Import needed for navigation
-import '../componentes/botao_lynchiano.dart'; // Add this import
 
 // Convert to StatefulWidget
 class TelaDetalhesSonho extends StatefulWidget {
@@ -20,10 +19,7 @@ class TelaDetalhesSonho extends StatefulWidget {
 }
 
 class _TelaDetalhesSonhoState extends State<TelaDetalhesSonho> {
-  // Local state to hold the potentially updated dream
   late Sonho _sonhoAtual;
-  bool _isLoadingInterpretacao = false;
-  String? _erroInterpretacao;
 
   @override
   void initState() {
@@ -123,70 +119,6 @@ class _TelaDetalhesSonhoState extends State<TelaDetalhesSonho> {
     }
   }
 
-  Future<void> _interpretarSonhoSalvo() async {
-    if (_isLoadingInterpretacao) return;
-
-    final apiService = Provider.of<ServicoApiCloudflare>(context, listen: false);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    setState(() {
-      _isLoadingInterpretacao = true;
-      _erroInterpretacao = null;
-    });
-
-    try {
-      final resultadoInterpretacao = await apiService.obterInterpretacao(_sonhoAtual.descricao);
-
-      if (resultadoInterpretacao.contains('temporariamente indisponível') ||
-          resultadoInterpretacao.contains('enfrentando dificuldades') ||
-          resultadoInterpretacao.contains('As cortinas vermelhas se fecharam temporariamente') ||
-          resultadoInterpretacao.contains('Não foi possível')) {
-        throw Exception(resultadoInterpretacao); 
-      }
-
-      final sonhoAtualizado = Sonho(
-          id: _sonhoAtual.id,
-          titulo: _sonhoAtual.titulo,
-          descricao: _sonhoAtual.descricao,
-          interpretacao: resultadoInterpretacao, 
-          dataCriacao: _sonhoAtual.dataCriacao
-      );
-
-      final sucessoSalvar = await apiService.salvarSonho(sonhoAtualizado);
-
-      if (sucessoSalvar && mounted) {
-        setState(() {
-          _sonhoAtual = sonhoAtualizado;
-          _isLoadingInterpretacao = false;
-        });
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: const Text("Sonho interpretado e salvo.", style: TextStyle(color: AppTema.corTexto)),
-            backgroundColor: AppTema.corAcento,
-          ),
-        );
-      } else if (!sucessoSalvar) {
-        throw Exception('Falha ao salvar o sonho com a nova interpretação.');
-      }
-
-    } catch (e) {
-      debugPrint('Erro ao interpretar sonho salvo: $e');
-       final mensagemErro = e.toString().contains('Exception:') 
-          ? e.toString().split('Exception: ').last
-          : e.toString();
-      if (mounted) {
-        setState(() {
-          _erroInterpretacao = mensagemErro;
-          _isLoadingInterpretacao = false;
-        });
-      }
-    } finally {
-      if (mounted && _isLoadingInterpretacao) {
-        setState(() { _isLoadingInterpretacao = false; });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // Use _sonhoAtual from state to build the UI
@@ -259,7 +191,7 @@ class _TelaDetalhesSonhoState extends State<TelaDetalhesSonho> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Conditionally display interpretation section only if not empty
+              // Display interpretation section ONLY if interpretation exists
               if (_sonhoAtual.interpretacao != null && _sonhoAtual.interpretacao!.isNotEmpty) ...[
                 const Text(
                   'Interpretação',
@@ -271,14 +203,14 @@ class _TelaDetalhesSonhoState extends State<TelaDetalhesSonho> {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  width: double.infinity, // Ensure container takes full width
+                  width: double.infinity, 
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppTema.corPrimaria,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppTema.corAcento),
                   ),
-                  constraints: const BoxConstraints(maxHeight: 200),
+                  constraints: const BoxConstraints(maxHeight: 300),
                   child: SingleChildScrollView(
                     child: Text(
                       _sonhoAtual.interpretacao!,
@@ -291,72 +223,8 @@ class _TelaDetalhesSonhoState extends State<TelaDetalhesSonho> {
                     ),
                   ),
                 ),
-              ] else ...[
-                const SizedBox(height: 24),
-                if (!_isLoadingInterpretacao) ...[
-                  BotaoLynchiano(
-                    texto: 'Interpretar Sonho',
-                    aoClicar: _interpretarSonhoSalvo,
-                    isEnabled: !_isLoadingInterpretacao, // Already checked by the outer if
-                  ),
-                ],
-                if (_isLoadingInterpretacao) ...[
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Column(
-                         children: [
-                            CircularProgressIndicator(color: AppTema.corAcento),
-                            SizedBox(height: 12),
-                            Text(
-                             'Interpretando...',
-                             style: TextStyle(color: AppTema.corTextoDimmed),
-                            )
-                         ],
-                      ),
-                    ),
-                  ),
-                ],
-                 if (_erroInterpretacao != null && !_isLoadingInterpretacao) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                       width: double.infinity,
-                       padding: const EdgeInsets.all(12),
-                       decoration: BoxDecoration(
-                          color: AppTema.corAcento.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTema.corSecundaria.withOpacity(0.5)),
-                       ),
-                       child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                             Row(
-                                children: [
-                                   Icon(Icons.warning_amber_rounded, color: AppTema.corSecundaria, size: 20),
-                                   const SizedBox(width: 8),
-                                   Text(
-                                      'Erro na Interpretação',
-                                      style: TextStyle(
-                                         fontWeight: FontWeight.bold,
-                                         color: AppTema.corSecundaria,
-                                      ),
-                                   ),
-                                ],
-                             ),
-                             const SizedBox(height: 8),
-                             Text(
-                                _erroInterpretacao!,
-                                style: TextStyle(
-                                   color: AppTema.corTexto.withOpacity(0.9),
-                                   fontSize: 13,
-                                ),
-                             ),
-                          ],
-                       ),
-                    ),
-                 ],
-              ],
-              const SizedBox(height: 20), // Add some padding at the end
+                const SizedBox(height: 20), // Add spacing after interpretation
+              ]
             ],
           ),
         ),

@@ -6,6 +6,7 @@ import '../servicos/servico_api_cloudflare.dart';
 import '../app_tema.dart';
 import 'tela_detalhes_sonho.dart';
 import 'tela_entrada_sonho.dart';
+import './tela_sobre_app.dart';
 
 class TelaListaSonhos extends StatefulWidget {
   const TelaListaSonhos({Key? key}) : super(key: key);
@@ -70,12 +71,34 @@ class _TelaListaSonhosState extends State<TelaListaSonhos> {
     }
   }
 
+  void _navegarParaSobre() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TelaSobreApp()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Diário de Sonhos'),
         backgroundColor: AppTema.corPrimaria,
+        title: const Text(
+          'Dream Journal',
+          style: TextStyle(
+            color: AppTema.corTexto,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            letterSpacing: 1.2,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Sobre o App',
+            onPressed: _navegarParaSobre,
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _carregarSonhos,

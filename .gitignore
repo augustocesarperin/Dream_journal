@@ -18,10 +18,9 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Build results
+build/
+.cxx/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -34,10 +33,8 @@ migrate_working_dir/
 .pub/
 /build/
 
-# Symbolication related
 app.*.symbols
 
-# Obfuscation related
 app.*.map.json
 
 # Android Studio will place build artifacts here
@@ -46,3 +43,29 @@ app.*.map.json
 /android/app/release
 \n# Arquivos de ambiente e configuração local\n.env\n.env.local\n*.env.secrets\n\n# Cloudflare Worker com chaves\n# cloudflare-worker.js\n\n# Arquivos temporários\n*.tmp\nlocal_logs/
 
+#
+.env
+.env*
+!.env.example
+
+cloudflare-worker.js
+cloudflare-worker-*.js
+
+# Arquivos temporários
+*.tmp
+local_logs/
+
+# === iOS ===
+/ios/Pods/
+/ios/Podfile.lock
+
+# Flutter-generated files
+/ios/Flutter/App.framework
+/ios/Flutter/Flutter.framework
+/ios/Flutter/ephemeral/
+/ios/.symlinks/
+
+# Xcode workspace files
+/ios/Runner.xcworkspace/
+/ios/Runner.xcodeproj/project.xcworkspace/
+/ios/Runner.xcodeproj/xcuserdata/

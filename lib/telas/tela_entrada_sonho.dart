@@ -199,6 +199,16 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
   Widget build(BuildContext context) {
     final String appBarTitle = widget.sonhoParaEditar == null ? 'Novo Sonho' : 'Editar Sonho';
 
+    // --- DEBUG PRINTS --- 
+    print('--- Build TelaEntradaSonho ---');
+    print('sonhoParaEditar: ${widget.sonhoParaEditar?.id ?? 'null'}');
+    print('_isFormValid: $_isFormValid');
+    print('_interpretacao: ${_interpretacao?.substring(0, (_interpretacao?.length ?? 0) > 20 ? 20 : _interpretacao?.length)}...');
+    print('_erro: $_erro');
+    print('_isLoadingInterpretacao: $_isLoadingInterpretacao');
+    print('_isLoadingSalvamento: $_isLoadingSalvamento');
+    // --- END DEBUG PRINTS ---
+
     return Scaffold(
       appBar: AppBar(
         title: Text(appBarTitle),
@@ -348,7 +358,11 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                         child: BotaoLynchiano(
                           texto: 'Reinterpretar',
                           aoClicar: _gerarInterpretacao,
-                          isEnabled: _isFormValid && !_isLoadingInterpretacao && !_isLoadingSalvamento,
+                          isEnabled: (){
+                            final enabled = _isFormValid && !_isLoadingInterpretacao && !_isLoadingSalvamento;
+                            print('Reinterpretar Button isEnabled: $enabled (form: $_isFormValid, loadInt: $_isLoadingInterpretacao, loadSave: $_isLoadingSalvamento)');
+                            return enabled;
+                          }(),
                           isLoading: _isLoadingInterpretacao,
                           isOutlined: true,
                         ),
@@ -358,7 +372,11 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                         child: BotaoLynchiano(
                           texto: 'Salvar Sonho',
                           aoClicar: _salvarSonho,
-                          isEnabled: _isFormValid && !_isLoadingInterpretacao && !_isLoadingSalvamento,
+                          isEnabled: (){
+                            final enabled = _isFormValid && !_isLoadingInterpretacao && !_isLoadingSalvamento;
+                            print('Salvar Button isEnabled: $enabled (form: $_isFormValid, loadInt: $_isLoadingInterpretacao, loadSave: $_isLoadingSalvamento)');
+                            return enabled;
+                          }(),
                           isLoading: _isLoadingSalvamento,
                         ),
                       ),
