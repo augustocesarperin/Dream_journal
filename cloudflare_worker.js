@@ -1,6 +1,6 @@
 export default {
   async fetch(request, env) {
-    // Adicionar suporte a CORS para preflights
+   
     if (request.method === "OPTIONS") {
       return new Response(null, {
         headers: {
@@ -32,7 +32,7 @@ export default {
 // Função para interpretar sonhos usando a API Gemini
 async function interpretarSonho(request, env) {
   try {
-    // Obter os dados da requisição
+    
     const { descricaoSonho } = await request.json();
     
     if (!descricaoSonho || typeof descricaoSonho !== 'string' || descricaoSonho.trim().length === 0) {
@@ -120,7 +120,7 @@ async function interpretarSonho(request, env) {
 
     const data = await geminiResponse.json();
     
-    // Extrair a interpretação da resposta da API Gemini
+    
     let interpretacao = "As cortinas vermelhas se fecharam temporariamente. Nenhum som veio do palco.";
     
     if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
@@ -129,7 +129,7 @@ async function interpretarSonho(request, env) {
       console.error("Resposta inesperada da API Gemini:", JSON.stringify(data));
     }
 
-    // Retornar a interpretação
+    
     return new Response(JSON.stringify({ interpretacao }), {
       headers: { 
         "Content-Type": "application/json", 
