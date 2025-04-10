@@ -46,5 +46,3 @@ app.*.map.json
 /android/app/release
 \n# Arquivos de ambiente e configuração local\n.env\n.env.local\n*.env.secrets\n\n# Cloudflare Worker com chaves\n# cloudflare-worker.js\n\n# Arquivos temporários\n*.tmp\nlocal_logs/
 
-# Ignorar documentação interna temporariamente
-/memory-bank/
