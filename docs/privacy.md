@@ -90,6 +90,6 @@ Alterações significativas que afetem a forma como coletamos ou processamos seu
 Para dúvidas, solicitações ou esclarecimentos, entre em contato através dos seguintes meios:
 
 E-mail: augustocesarperin@abstratuslabs.com
-Link da Política: https://abstratuslabs.com/politica-privacidade
+Link da Política: https://augustocesarperin.github.io/Dream_journal/privacy.md
 Desenvolvedor: Abstratus Labs
 País de operação: Brasil
