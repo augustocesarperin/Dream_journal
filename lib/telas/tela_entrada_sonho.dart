@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 import '../componentes/botao_lynchiano.dart';
 import '../componentes/campo_texto_lynchiano.dart';
 import '../servicos/servico_api_cloudflare.dart';
 import '../app_tema.dart';
-import 'package:uuid/uuid.dart';
+import '../modelos/sonho.dart';
 
 class TelaEntradaSonho extends StatefulWidget {
   const TelaEntradaSonho({Key? key}) : super(key: key);
@@ -136,17 +137,24 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
     try {
       debugPrint('Salvando sonho...');
       final apiService = Provider.of<ServicoApiCloudflare>(context, listen: false);
-      final sonho = await apiService.salvarSonho(
-        _tituloController.text,
-        _descricaoController.text,
-        _interpretacao!,
+      
+      // Cria um objeto Sonho com os dados do formulário
+      final novoSonho = Sonho(
+        id: Uuid().v4(),  // ID vazio para novo sonho
+        titulo: _tituloController.text,
+        descricao: _descricaoController.text,
+        interpretacao: _interpretacao ?? '',
+        dataCriacao: DateTime.now(),
       );
+      
+      // Chama o método atualizado
+      final resultado = await apiService.salvarSonho(novoSonho);
 
       setState(() {
         _isLoading = false;
       });
 
-      if (sonho != null && mounted) {
+      if (resultado && mounted) {
         debugPrint('Sonho salvo com sucesso!');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -193,19 +201,17 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CampoTextoLynchiano(
-                  rotulo: 'Título',
-                  dica: 'Digite um título para seu sonho',
+                  rotulo: 'Data',
+                  dica: 'Digite a data do sonho (opcional)',
                   controlador: _tituloController,
                   validador: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, digite um título';
-                    }
+                    // Campo não obrigatório
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
                 CampoTextoLynchiano(
-                  rotulo: 'Descrição do Sonho',
+                  rotulo: 'Descreva o seu sonho',
                   dica: 'Descreva seu sonho em detalhes...',
                   controlador: _descricaoController,
                   isMultiline: true,
@@ -244,7 +250,7 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                         ),
                         SizedBox(height: 12),
                         Text(
-                          'Consultando as cortinas vermelhas...',
+                          'Aguarde enquanto a cortina vermelha se abre',
                           style: TextStyle(
                             fontStyle: FontStyle.italic,
                             color: AppTema.corTextoDimmed,
@@ -331,10 +337,52 @@ class _TelaEntradaSonhoState extends State<TelaEntradaSonho> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  BotaoLynchiano(
-                    texto: 'Salvar Sonho',
-                    aoClicar: _salvarSonho,
-                    isLoading: _isLoading && _interpretacaoGerada,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: BotaoLynchiano(
+                          texto: 'Salvar Sonho',
+                          aoClicar: _salvarSonho,
+                          isLoading: _isLoading && _interpretacaoGerada,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: BotaoLynchiano(
+                          texto: 'Deletar Sonho',
+                          aoClicar: () {
+                            // Mostra um diálogo de confirmação
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Confirmar exclusão'),
+                                  content: const Text('Tem certeza que deseja deletar este sonho?'),
+                                  backgroundColor: AppTema.corFundo,
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(),
+                                      child: const Text('Cancelar'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        Navigator.pop(context, false);
+                                      },
+                                      child: const Text(
+                                        'Deletar',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          isOutlined: true,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],

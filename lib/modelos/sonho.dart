@@ -13,6 +13,23 @@ class Sonho {
     required this.dataCriacao,
   });
 
+  // Adiciona o método copyWith para criar uma cópia modificada
+  Sonho copyWith({
+    String? id,
+    String? titulo,
+    String? descricao,
+    String? interpretacao,
+    DateTime? dataCriacao,
+  }) {
+    return Sonho(
+      id: id ?? this.id,
+      titulo: titulo ?? this.titulo,
+      descricao: descricao ?? this.descricao,
+      interpretacao: interpretacao ?? this.interpretacao,
+      dataCriacao: dataCriacao ?? this.dataCriacao,
+    );
+  }
+
   factory Sonho.fromJson(Map<String, dynamic> json) {
     return Sonho(
       id: json['id'],
@@ -32,4 +49,4 @@ class Sonho {
       'dataCriacao': dataCriacao.toIso8601String(),
     };
   }
-} 
+}

@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 
+// Tema visual do aplicativo, inspirado em estética noir e tons escuros
+// Centraliza as cores e estilos usados em todo o app
 class AppTema {
+  // Paleta de cores principal
   static const Color corPrimaria = Color(0xFF1A1A1A);
-  static const Color corSecundaria = Color(0xFFB20000);
+  static const Color corSecundaria = Color(0xFFB20000); // vermelho escuro
   static const Color corFundo = Color(0xFF000000);
   static const Color corTexto = Color(0xFFE0E0E0);
   static const Color corTextoDimmed = Color(0xFF9E9E9E);
   static const Color corAcento = Color(0xFF4A0000);
   static const Color corCortina = Color(0xFFAA0000);
 
+  // TODO: adicionar variações da paleta para diferentes níveis de contraste
+
+  // Retorna o tema configurado para o app
   static ThemeData obterTema() {
+    // Usa o esquema escuro como base
     return ThemeData(
       useMaterial3: true,
       colorScheme: const ColorScheme.dark(
@@ -20,11 +27,14 @@ class AppTema {
         error: Colors.redAccent,
       ),
       scaffoldBackgroundColor: corFundo,
+      // Configuração da AppBar
       appBarTheme: const AppBarTheme(
         backgroundColor: corPrimaria,
         foregroundColor: corTexto,
         elevation: 0,
       ),
+      // Configuração dos estilos de texto
+      // Talvez mudar as fontes no futuro
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           color: corTexto,
@@ -60,6 +70,7 @@ class AppTema {
           letterSpacing: 0.4,
         ),
       ),
+      // Estilo dos campos de texto
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: corPrimaria,
@@ -73,6 +84,7 @@ class AppTema {
         ),
         hintStyle: const TextStyle(color: corTextoDimmed),
       ),
+      // Botões elevados
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: corSecundaria,
@@ -83,6 +95,7 @@ class AppTema {
           ),
         ),
       ),
+      // Estilo dos cards
       cardTheme: CardTheme(
         color: corPrimaria,
         elevation: 4,
@@ -90,6 +103,7 @@ class AppTema {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
+      // Divisores
       dividerTheme: const DividerThemeData(
         color: corAcento,
         thickness: 1,
