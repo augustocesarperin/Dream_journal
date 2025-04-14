@@ -5,7 +5,7 @@ export default {
       return new Response(null, {
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type"
         }
       });
@@ -14,26 +14,18 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Rota para interpretação de sonhos
+    // Rota ÚNICA: interpretação de sonhos
     if (path === "/" && request.method === "POST") {
       return await interpretarSonho(request, env);
     }
     
-    // Rotas para gerenciamento de sonhos
-    if (path === "/sonhos" && request.method === "GET") {
-      return await listarSonhos(env);
-    }
-    
-    if (path === "/sonhos" && request.method === "POST") {
-      return await salvarSonho(request, env);
-    }
-    
-    if (path.startsWith("/sonhos/") && request.method === "GET") {
-      const id = path.split("/")[2];
-      return await obterSonho(id, env);
-    }
-
-    return new Response("Não encontrado", { status: 404 });
+    // Se não for POST / ou OPTIONS, retorna 404
+    return new Response("Endpoint não encontrado ou método inválido.", {
+      status: 404,
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      }
+    });
   }
 };
 
@@ -43,10 +35,11 @@ async function interpretarSonho(request, env) {
     // Obter os dados da requisição
     const { descricaoSonho } = await request.json();
     
-    if (!descricaoSonho) {
+    if (!descricaoSonho || typeof descricaoSonho !== 'string' || descricaoSonho.trim().length === 0) {
       return new Response(JSON.stringify({
-        interpretacao: "Seu sonho parece vazio como uma sala escura sem cortinas."
+        interpretacao: "A descrição do sonho está vazia ou inválida. Como um filme sem projetor, não há nada para interpretar."
       }), {
+        status: 400,
         headers: { 
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*"
@@ -74,11 +67,27 @@ async function interpretarSonho(request, env) {
     `;
 
     // Fazer requisição para a API Gemini
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
+    const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+    const apiKey = env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      console.error("Erro: GEMINI_API_KEY não está configurada no ambiente do Worker.");
+      return new Response(JSON.stringify({
+        interpretacao: "Erro de configuração no servidor. A chave para o mundo dos sonhos não foi encontrada."
+      }), {
+        status: 500,
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    const geminiResponse = await fetch(geminiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": env.GEMINI_API_KEY
+        "x-goog-api-key": apiKey
       },
       body: JSON.stringify({
         contents: [{
@@ -95,13 +104,29 @@ async function interpretarSonho(request, env) {
       })
     });
 
-    const data = await response.json();
+    if (!geminiResponse.ok) {
+        const errorBody = await geminiResponse.text();
+        console.error(`Erro da API Gemini: ${geminiResponse.status} ${geminiResponse.statusText}, Corpo: ${errorBody}`);
+        return new Response(JSON.stringify({
+            interpretacao: `As cortinas vermelhas tremulam com um erro (${geminiResponse.status}). Tente novamente mais tarde.`
+        }), {
+            status: 502,
+            headers: { 
+                "Content-Type": "application/json", 
+                "Access-Control-Allow-Origin": "*" 
+            }
+        });
+    }
+
+    const data = await geminiResponse.json();
     
     // Extrair a interpretação da resposta da API Gemini
-    let interpretacao = "As cortinas vermelhas se fecharam temporariamente.";
+    let interpretacao = "As cortinas vermelhas se fecharam temporariamente. Nenhum som veio do palco.";
     
-    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-      interpretacao = data.candidates[0].content.parts[0].text;
+    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
+      interpretacao = data.candidates[0].content.parts[0].text.trim();
+    } else {
+      console.error("Resposta inesperada da API Gemini:", JSON.stringify(data));
     }
 
     // Retornar a interpretação
@@ -111,127 +136,12 @@ async function interpretarSonho(request, env) {
         "Access-Control-Allow-Origin": "*" 
       }
     });
+
   } catch (error) {
-    console.error("Erro:", error);
-    
+    console.error("Erro inesperado na função interpretarSonho:", error);
     return new Response(JSON.stringify({
-      interpretacao: "As cortinas vermelhas se fecharam temporariamente. Como em um salão enigmático de Twin Peaks, sua interpretação existe, mas está momentaneamente além do alcance."
+      interpretacao: "As cortinas vermelhas se fecharam abruptamente. Como em um salão enigmático, sua interpretação existe, mas está momentaneamente além do alcance."
     }), {
-      headers: { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      }
-    });
-  }
-}
-
-// Função para listar todos os sonhos
-async function listarSonhos(env) {
-  try {
-    const listaIds = await env.SONHOS_KV.list();
-    const sonhos = [];
-    
-    for (const key of listaIds.keys) {
-      const sonhoJson = await env.SONHOS_KV.get(key.name);
-      if (sonhoJson) {
-        sonhos.push(JSON.parse(sonhoJson));
-      }
-    }
-    
-    // Ordenar por data de criação (mais recente primeiro)
-    sonhos.sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
-    
-    return new Response(JSON.stringify(sonhos), {
-      headers: { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      }
-    });
-  } catch (error) {
-    console.error("Erro ao listar sonhos:", error);
-    return new Response(JSON.stringify([]), {
-      headers: { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      }
-    });
-  }
-}
-
-// Função para salvar um novo sonho
-async function salvarSonho(request, env) {
-  try {
-    const sonho = await request.json();
-    
-    // Validar dados
-    if (!sonho.titulo || !sonho.descricao || !sonho.interpretacao) {
-      return new Response(JSON.stringify({ erro: "Dados incompletos" }), {
-        status: 400,
-        headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
-    }
-    
-    // Gerar ID único
-    const id = crypto.randomUUID();
-    
-    // Adicionar ID ao sonho
-    const sonhoCompleto = {
-      id,
-      titulo: sonho.titulo,
-      descricao: sonho.descricao,
-      interpretacao: sonho.interpretacao,
-      dataCriacao: sonho.dataCriacao || new Date().toISOString()
-    };
-    
-    // Salvar no KV
-    await env.SONHOS_KV.put(id, JSON.stringify(sonhoCompleto));
-    
-    return new Response(JSON.stringify(sonhoCompleto), {
-      status: 201,
-      headers: { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      }
-    });
-  } catch (error) {
-    console.error("Erro ao salvar sonho:", error);
-    return new Response(JSON.stringify({ erro: "Erro ao salvar sonho" }), {
-      status: 500,
-      headers: { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      }
-    });
-  }
-}
-
-// Função para obter um sonho específico
-async function obterSonho(id, env) {
-  try {
-    const sonhoJson = await env.SONHOS_KV.get(id);
-    
-    if (!sonhoJson) {
-      return new Response(JSON.stringify({ erro: "Sonho não encontrado" }), {
-        status: 404,
-        headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
-    }
-    
-    return new Response(sonhoJson, {
-      headers: { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      }
-    });
-  } catch (error) {
-    console.error("Erro ao obter sonho:", error);
-    return new Response(JSON.stringify({ erro: "Erro ao obter sonho" }), {
       status: 500,
       headers: { 
         "Content-Type": "application/json",
